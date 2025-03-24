@@ -2,7 +2,9 @@
 
 namespace App\Exceptions;
 
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Illuminate\Http\JsonResponse;
 use Throwable;
 
 class Handler extends ExceptionHandler
@@ -15,7 +17,14 @@ class Handler extends ExceptionHandler
     protected $levels = [
         //
     ];
-
+    public function unauthenticated($request, AuthenticationException $exception): JsonResponse
+    {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'You need to log in to continue',
+            'redirect' => '/login'
+        ], 401);
+    }
     /**
      * A list of the exception types that are not reported.
      *
