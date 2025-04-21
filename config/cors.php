@@ -15,21 +15,20 @@ return [
     |
     */
 
-    'paths' => ['api/*', 'sanctum/csrf-cookie',"*"],
-    // 'paths' => ['api/*', 'sanctum/csrf-cookie'],
+    'paths' => ['api/*', 'sanctum/csrf-cookie', '*'], // Cette ligne inclut toutes les requêtes API et Sanctum
 
-    'allowed_methods' => ['*'],
+    'allowed_methods' => ['*'],  // Autorise toutes les méthodes HTTP (GET, POST, PUT, DELETE...)
 
-    'allowed_origins' => ['http://localhost:5173'],
+    'allowed_origins' => ['http://localhost:5173'],  // Le frontend qui peut accéder à l'API (ici localhost avec port 5173)
 
-    'allowed_origins_patterns' => [],
+    'allowed_origins_patterns' => [],  // Aucun motif particulier ici
 
-    'allowed_headers' => ['*'],
+    'allowed_headers' => ['*'],  // Autorise tous les en-têtes (headers)
 
-    'exposed_headers' => [],
+    'exposed_headers' => [],  // Aucune en-tête spécifique à exposer
 
-    'max_age' => 0,
+    'max_age' => 0,  // Temps de mise en cache pour les pré-vols (0 signifie aucune mise en cache)
 
-    'supports_credentials' => true,
+    'supports_credentials' => true,  // Autorise l'envoi de cookies ou d'informations d'identification
 
 ];

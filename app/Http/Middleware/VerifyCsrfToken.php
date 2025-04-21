@@ -15,6 +15,8 @@ class VerifyCsrfToken extends Middleware
         'register', // ou '/api/register' si ta route est prefixed
         'api/*',
         'new_submission', // Ajoutez ici vos routes spécifiques
+    // Exclure toutes les routes de l'API
+        'guides/*',  // Exclure les routes relatives aux guides si besoin
+
     ];
-    
 }

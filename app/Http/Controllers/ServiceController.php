@@ -10,7 +10,6 @@ use App\Models\Admin;
 
 use Illuminate\Support\Facades\Log;
 
-
 class ServiceController extends Controller
 {
     /**
@@ -18,17 +17,16 @@ class ServiceController extends Controller
      */
     public function index()
     {
-        $services = Service::with(['city', 'category', 'admin'])->get();
-        return $services;
+        return response()->json(Service::all());
     }
 
-
-
-    
+    /**
+     * Récupère tous les lieux de services dans une catégorie spécifique.
+     */
     public function getAllPlaces()
     {
-        $services = Service::with([ 'category', 'admin'])
-            ->where('category_id', 4)
+        $services = Service::with(['category', 'admin'])
+            ->where('category_id', 4) // Exemple: Afficher les services dans la catégorie 4
             ->get();
 
         return response()->json($services);
@@ -53,81 +51,45 @@ class ServiceController extends Controller
     /**
      * Enregistre un nouveau service.
      */
-//     public function store(Request $request)
-// {
-//     // Validation des données
+    public function store(Request $request)
+    {
+        // Validation des données
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'slug' => 'required|string|unique:services,slug',
+            'description' => 'nullable|string',
+            'address' => 'required|string',
+            'website' => 'nullable|url',
+            'email' => 'required|email',
+            'phone_number' => 'required|string',
+            'city_id' => 'required|exists:cities,id',
+            'category_id' => 'required|exists:categories,id',
+        ]);
 
-//     $categoryId = $request->category_id ?? 1;
-    
-//     // Création d'un nouveau service
-//     $service = new Service();
-//     $service->name = $request->name;
-//     $service->slug = $request->slug;
-//     $service->description = $request->description;
-//     $service->address = $request->address;
-//     $service->website = $request->website;
-//     $service->email = $request->email;
-//     $service->phone_number = $request->phone_number;
-//     $service->city_id = $request->city_id;
+        // Création d'un nouveau service
+        $service = new Service();
+        $service->name = $request->name;
+        $service->slug = $request->slug;
+        $service->description = $request->description;
+        $service->address = $request->address;
+        $service->website = $request->website;
+        $service->email = $request->email;
+        $service->phone_number = $request->phone_number;
+        $service->city_id = $request->city_id;
+        $service->category_id = $request->category_id;
 
+        // Gestion de l'image (si elle est présente)
+        if ($request->hasFile('image')) {
+            $imageName = $request->file('image')->getClientOriginalName();
+            $path = $request->file('image')->storeAs('/images/services', $imageName, 'public');
+            $service->image = '/images/services/' . $imageName;
+        }
 
-//     $service->category_id = $categoryId; 
+        // Enregistrement du service
+        $service->save();
 
-
-//     // Gestion de l'image
-//     if ($request->hasFile('image')) {
-//         $path = $request->file('image')->store('services', 'public');
-//         $service->image = $path;
-//     }
-
-//     // Enregistrement du service
-//     $service->save();
-
-//     // Retourner une réponse JSON avec un message de succès
-//     return response()->json(['message' => 'Service ajouté avec succès'], 201);
-// }
-
-
-
-
-
-
-public function store(Request $request)
-{
-
-
-    // Récupérer l'ID de la catégorie ou définir la valeur par défaut
-    $categoryId = $request->category_id ?? 1;
-
-    // Création d'un nouveau service
-    $service = new Service();
-    $service->name = $request->name;
-    $service->slug = $request->slug;
-    $service->description = $request->description;
-    $service->address = $request->address;
-    $service->website = $request->website;
-    $service->email = $request->email;
-    $service->phone_number = $request->phone_number;
-    $service->city_id = $request->city_id;
-    $service->category_id = $categoryId; 
-
-    // Gestion de l'image
-    if ($request->hasFile('image')) {
-        // Récupérer le nom de l'image et la stocker dans le dossier 'public/images/services'
-        $imageName = $request->file('image')->getClientOriginalName();
-        $path = $request->file('image')->storeAs('/images/services', $imageName, 'public');
-        
-        // Enregistrer le chemin relatif dans la base de données
-        $service->image = '/images/services/' . $imageName;
+        return response()->json(['message' => 'Service ajouté avec succès'], 201);
     }
-
-    // Enregistrement du service
-    $service->save();
-
-    // Retourner une réponse JSON avec un message de succès
-    return response()->json(['message' => 'Service ajouté avec succès'], 201);
-}
-
 
     /**
      * Affiche un service spécifique.
@@ -160,46 +122,60 @@ public function store(Request $request)
      * Met à jour un service.
      */
     public function update(Request $request, $id)
-{
-    $service = Service::findOrFail($id);
+    {
+        $service = Service::findOrFail($id);
 
-    // Préparez les données de mise à jour
-    $updatedData = $request->only([
-        'name',
-        'description',
-        'address',
-        'email',
-        'phone_number',
-        'website',
-        'city_id',
-        'category_id'
-    ]);
+        // Validation des données
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'slug' => 'required|string|unique:services,slug,' . $service->id,
+            'description' => 'nullable|string',
+            'address' => 'required|string',
+            'website' => 'nullable|url',
+            'email' => 'required|email',
+            'phone_number' => 'required|string',
+            'city_id' => 'required|exists:cities,id',
+            'category_id' => 'required|exists:categories,id',
+        ]);
 
-    // Image upload (si une nouvelle image est envoyée)
-    if ($request->hasFile('image')) {
-        // Supprimer l'ancienne image si elle existe
-        if ($service->image && file_exists(public_path('images/services/' . $service->image))) {
-            unlink(public_path('images/services/' . $service->image));
+        // Préparez les données de mise à jour
+        $updatedData = $request->only([
+            'name',
+            'slug',
+            'description',
+            'address',
+            'email',
+            'phone_number',
+            'website',
+            'city_id',
+            'category_id'
+        ]);
+
+        // Image upload (si une nouvelle image est envoyée)
+        if ($request->hasFile('image')) {
+            // Supprimer l'ancienne image si elle existe
+            if ($service->image && file_exists(public_path($service->image))) {
+                unlink(public_path($service->image));
+            }
+
+            // Télécharger la nouvelle image
+            $file = $request->file('image');
+            $filename = time() . '_' . $file->getClientOriginalName();
+            $file->move(public_path('images/services'), $filename);
+
+            // Ajouter le chemin de la nouvelle image aux données mises à jour
+            $updatedData['image'] = 'images/services/' . $filename;
         }
 
-        // Télécharger la nouvelle image
-        $file = $request->file('image');
-        $filename = time() . '_' . $file->getClientOriginalName();
-        $file->move(public_path('images/services'), $filename);
+        // Log pour débogage
+        Log::debug('Service updated data:', $updatedData);
 
-        // Ajouter le chemin de la nouvelle image aux données mises à jour
-        $updatedData['image'] = 'services/' . $filename;
+        // Mettre à jour les données du service
+        $service->update($updatedData);
+
+        // Retourner une réponse avec le message de succès et les données du service
+        return response()->json(['message' => 'Service mis à jour avec succès', 'service' => $service]);
     }
-
-    // Log pour débogage
-    Log::debug('Service updated data:', $updatedData);
-
-    // Mettre à jour les données du service
-    $service->update($updatedData);
-
-    // Retourner une réponse avec le message de succès et les données du service
-    return response()->json(['message' => 'Service mis à jour avec succès', 'service' => $service]);
-}
 
     /**
      * Supprime un service.
@@ -209,7 +185,6 @@ public function store(Request $request)
         $service = Service::findOrFail($id);
         $service->delete();
 
-        // return redirect()->route('services.index')->with('success', 'Service supprimé avec succès.');
-        return response()->json(['message' => 'Deleted']);
+        return response()->json(['message' => 'Service supprimé avec succès.']);
     }
 }

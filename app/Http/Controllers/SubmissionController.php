@@ -8,63 +8,86 @@ use Illuminate\Support\Facades\Auth;
 
 class SubmissionController extends Controller
 {
+    // Afficher toutes les soumissions
     public function index()
     {
-        $submission = Service_Submission::all();
-        return $submission;
+        $submissions = Service_Submission::all();
+        return response()->json($submissions);
     }
 
-    
+    // Ajouter une nouvelle soumission
     public function store(Request $request)
-{
-    // Validation des données avec la validation de l'image spécifiée
+    {
+        $user_id = Auth::id();
 
+        // Création de la soumission
+        $submission = new Service_Submission();
 
-    // Création de la soumission
-    $submission = new Service_Submission();
+        // Assigner les valeurs aux propriétés du modèle
+        $submission->name = $request->name;
+        $submission->description = $request->description;
+        $submission->address = $request->address;
+        $submission->website = $request->website;
+        $submission->email = $request->email;
+        $submission->phone_number = $request->phone_number;
+        $submission->category_id = $request->category_id;
+        $submission->city_id = $request->city_id;
+        $submission->user_id = $user_id;
+        $submission->status = 'pending';  // statut par défaut
 
-    // Assigner les valeurs aux propriétés du modèle
-    $submission->name = $request->name;
-    $submission->description = $request->description;
-    $submission->address = $request->address;
-    $submission->website = $request->website;
-    $submission->email = $request->email;
-    $submission->phone_number = $request->phone_number;
-    $submission->category_id = $request->category_id;
-    $submission->city_id = $request->city_id;
+        // Gestion de l'image
+        if ($request->hasFile('image')) {
+            // Récupérer le nom original de l'image
+            $imageName = $request->file('image')->getClientOriginalName();
 
-    // Gestion de l'image
-    if ($request->hasFile('image')) {
-        // Récupérer le nom original de l'image
-        $imageName = $request->file('image')->getClientOriginalName();
+            // Déplacer l'image vers le dossier public/images/services
+            $imagePath = public_path('/images/services');
+            $request->file('image')->move($imagePath, $imageName);
 
-        // Déplacer l'image vers le dossier public/images/services
-        $imagePath = public_path('/images/services');
-        $request->file('image')->move($imagePath, $imageName);
+            // Enregistrer le chemin relatif de l'image dans la base de données
+            $submission->image = '/images/services/' . $imageName;
+        }
 
-        // Enregistrer le chemin relatif de l'image dans la base de données
-        $submission->image = '/images/services/' . $imageName;
+        // Enregistrement en base de données
+        $submission->save();
+
+        return response()->json(['message' => 'Soumission reçue avec succès'], 201);
     }
 
-    // Enregistrer la soumission dans la base de données
-    $submission->status = 'pending';  // Vous pouvez définir un statut par défaut
-    $submission->save();
-
-    // Retourner une réponse JSON avec un message de succès
-    return response()->json(['message' => 'Soumission reçue avec succès'], 201);
-}
-
-
-
-
-
-
-    public function destroy(string $id)
+    // Afficher une soumission pour l'édition
+    public function edit($id)
     {
-        $service = Service_Submission::findOrFail($id);
-        $service->delete();
+        $submission = Service_Submission::findOrFail($id);
+        return response()->json($submission);
+    }
 
-        // return redirect()->route('services.index')->with('success', 'Service supprimé avec succès.');
-        return response()->json(['message' => 'Deleted']);
+    // Mettre à jour une soumission existante
+    public function update(Request $request, $id)
+    {
+        $submission = Service_Submission::findOrFail($id);
+
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+            'category' => 'required|string|max:255',
+            'city' => 'required|string|max:255',
+            'owner' => 'required|string|max:255',
+            'date' => 'required|date',
+            'status' => 'required|string|max:255',
+            'email' => 'required|email|max:255',
+            'phone_number' => 'required|string|max:20',
+            'address' => 'required|string|max:255',
+            'website' => 'required|url|max:255',
+        ]);
+
+        $submission->update($data);
+        return response()->json($submission);
+    }
+
+    // Supprimer une soumission
+    public function destroy($id)
+    {
+        $submission = Service_Submission::findOrFail($id);
+        $submission->delete();
+        return response()->json(['message' => 'Soumission supprimée avec succès.']);
     }
 }

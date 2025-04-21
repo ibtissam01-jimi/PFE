@@ -8,13 +8,20 @@ use Illuminate\Database\Eloquent\Model;
 class Favorite extends Model
 {
     use HasFactory;
-    protected $fillable = ['user_id', 'service_id'];
 
+    protected $fillable = ['utilisateur_id', 'service_id'];
+
+    /**
+     * Relation avec le modèle Utilisateur.
+     */
     public function utilisateur()
     {
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * Relation avec le modèle Service.
+     */
     public function service()
     {
         return $this->belongsTo(Service::class);

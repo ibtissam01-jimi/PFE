@@ -2,81 +2,39 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Favorite;
-use App\Models\Utilisateur;
-use App\Models\Service;
-
+use Illuminate\Http\Request;
 
 class FavoriteController extends Controller
+
 {
-    /**
-     * Affiche la liste des favoris.
-     */
-    public function index()
-    {
-        $favorites = Favorite::with(['utilisateur', 'service'])->get();
-        return  $favorites;
-    }
+    public function index($utilisateur_id)
+{
+    $favorites = Favorite::with('service') // relation avec Service
+        ->where('utilisateur_id', $utilisateur_id)
+        ->get();
 
-    /**
-     * Affiche le formulaire pour ajouter un favori.
-     */
-    public function create()
-    {
-        $users = Utilisateur::all();
-        $services = Service::all();
+    return response()->json($favorites);
+}
 
-        return view('favorites.create', [
-            'users' => $users,
-            'services' => $services
-        ]);
-    }
-
-    /**
-     * Ajoute un favori.
-     */
     public function store(Request $request)
     {
-        $request->validate([
-            'utilisateur_id' => 'required|exists:utilisateurs,id',
+        $validated = $request->validate([
+            'utilisateur_id' => 'required|exists:users,id',
             'service_id' => 'required|exists:services,id',
         ]);
 
-        // Vérifier si le favori existe déjà
-        $existingFavorite = Favorite::where('utilisateur_id', $request->utilisateur_id)
-                                    ->where('service_id', $request->service_id)
-                                    ->first();
+        $exists = Favorite::where('utilisateur_id', $validated['utilisateur_id'])
+            ->where('service_id', $validated['service_id'])
+            ->exists();
 
-        if ($existingFavorite) {
-            return redirect()->route('favorites.index')->with('error', 'Ce service est déjà dans vos favoris.');
+        if ($exists) {
+            return response()->json(['message' => 'Déjà dans les favoris'], 409);
         }
 
-        Favorite::create([
-            'utilisateur_id' => $request->utilisateur_id,
-            'service_id' => $request->service_id,
-        ]);
+        Favorite::create($validated);
 
-        return redirect()->route('favorites.index')->with('success', 'Favori ajouté avec succès.');
+        return response()->json(['message' => 'Ajouté aux favoris !']);
     }
 
-    /**
-     * Affiche un favori spécifique.
-     */
-    public function show(string $id)
-    {
-        $favorite = Favorite::with(['utilisateur', 'service'])->findOrFail($id);
-        return view('favorites.show', ['favorite' => $favorite]);
-    }
-
-    /**
-     * Supprime un favori.
-     */
-    public function destroy(string $id)
-    {
-        $favorite = Favorite::findOrFail($id);
-        $favorite->delete();
-
-        return redirect()->route('favorites.index')->with('success', 'Favori supprimé avec succès.');
-    }
 }

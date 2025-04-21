@@ -14,7 +14,7 @@ class UtilisateurController extends Controller
     public function index()
     {
         $utilisateurs = User::all();
-        return  $utilisateurs;
+        return response()->json($utilisateurs); // Retourner les utilisateurs en format JSON
     }
 
     /**
@@ -30,26 +30,38 @@ class UtilisateurController extends Controller
      */
     public function store(Request $request)
     {
-        $user = new User();
-        $user->name = $request->name;
-        $user->username = $request->username;
-        $user->email = $request->email;
-        $user->password = Hash::make($request->password);
-        $user->role = $request->role;
-        $user->nationality = $request->nationality;
-        $user->birth_date = $request->birth_date;
-        $user->save();
+        // Validation des données
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'username' => 'required|string|max:255|unique:users',
+            'email' => 'required|email|unique:users',
+            'password' => 'required|string|min:6',
+            'role' => 'required|string',
+            'nationality' => 'required|string',
+            'birth_date' => 'nullable|date',
+        ]);
 
-        return response()->json(['message' => 'User created successfully', 'user' => $user], 201);
+        // Création de l'utilisateur
+        $user = User::create([
+            'name' => $request->name,
+            'username' => $request->username,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'role' => $request->role,
+            'nationality' => $request->nationality,
+            'birth_date' => $request->birth_date,
+        ]);
+
+        // Retourner une réponse JSON avec un message de succès
+        return response()->json(['message' => 'Utilisateur créé avec succès', 'user' => $user], 201);
     }
-    
 
     /**
      * Affiche les détails d'un utilisateur.
      */
     public function show(string $id)
     {
-        $utilisateur = Utilisateur::findOrFail($id);
+        $utilisateur = User::findOrFail($id);
         return view('utilisateurs.show', ['utilisateur' => $utilisateur]);
     }
 
@@ -58,7 +70,7 @@ class UtilisateurController extends Controller
      */
     public function edit(string $id)
     {
-        $utilisateur = Utilisateur::findOrFail($id);
+        $utilisateur = User::findOrFail($id);
         return view('utilisateurs.edit', ['utilisateur' => $utilisateur]);
     }
 
@@ -72,9 +84,10 @@ class UtilisateurController extends Controller
             'name' => 'required|string|max:255',
             'username' => 'required|string|max:255|unique:users,username,' . $id,
             'email' => 'required|email|unique:users,email,' . $id,
+            'password' => 'nullable|string|min:6',
             'role' => 'required|string|max:255',
             'nationality' => 'required|string|max:255',
-            'birthDate' => 'required|date',
+            'birth_date' => 'nullable|date',
         ]);
 
         // Trouver l'utilisateur par son ID
@@ -90,13 +103,14 @@ class UtilisateurController extends Controller
             'name' => $validatedData['name'],
             'username' => $validatedData['username'],
             'email' => $validatedData['email'],
+            'password' => !empty($validatedData['password']) ? Hash::make($validatedData['password']) : $user->password,
             'role' => $validatedData['role'],
             'nationality' => $validatedData['nationality'],
-            'birth_date' => $validatedData['birthDate'],
+            'birth_date' => $validatedData['birth_date'] ?? null,
         ]);
 
         // Retourner la réponse avec les données mises à jour
-        return response()->json($user, 200);
+        return response()->json(['message' => 'Utilisateur mis à jour avec succès', 'user' => $user], 200);
     }
 
     /**
@@ -104,9 +118,10 @@ class UtilisateurController extends Controller
      */
     public function destroy($id)
     {
-        $evaluator = User::findOrFail($id);
-        $evaluator->delete();
-    
-        return response()->json(['message' => 'Deleted']);
+        $utilisateur = User::findOrFail($id);
+        $utilisateur->delete();
+
+        // Retourner une réponse JSON avec un message de suppression
+        return response()->json(['message' => 'Utilisateur supprimé avec succès']);
     }
 }

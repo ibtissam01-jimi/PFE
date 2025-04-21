@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use App\Models\Admin;
 
 class AuthController extends Controller
 {
@@ -14,7 +15,6 @@ class AuthController extends Controller
             'name' => 'required|string|min:3',
             'email' => 'required|string|email|unique:users',
             'password' => 'required|string|min:4',
-            //'role' => 'required|string|in:admin,user,business '
         ]);
 
         $user = new User();
@@ -27,52 +27,69 @@ class AuthController extends Controller
         $user->password = Hash::make($request->password);
         $user->save();
 
-        
-        $token= Auth::login($user);
+        $token = Auth::login($user);
          
-        //$roleController = new RoleController();
-        //$roleController->assignRole($user);
         return response()->json([
-            'message' => 'registered Succesfully',
+            'message' => 'registered Successfully',
             'user' => $user,
             'Authorization'=> [
                 'token'=> $token,
                 'type'=> 'Bearer',
             ]
-            ], 201);
-   
+        ], 201);
     }
+
     public function test(){
-        return response()->json(['data'=>'test']);
+        return response()->json(['data' => 'test']);
     }
 
-    public function login(Request $request){
-        $credentials= $request->only('email','password');
+    public function login(Request $request)
+    {
+        $credentials = $request->only('email', 'password');
 
-        $token = Auth::attempt($credentials);
-        if(!$token){
+        // Check if the credentials match an admin
+        $admin = Admin::where('email', $credentials['email'])->first();
+        if ($admin && Hash::check($credentials['password'], $admin->password)) {
+            $token = Auth::login($admin);
             return response()->json([
-                'status'=>'error',
-                'message'=> 'Login not valide'
-            ],401);
+                'status' => 'success',
+                'user' => $admin,
+                'Authorization' => [
+                    'token' => $token,
+                    'type' => 'Bearer',
+                ]
+            ], 200);
         }
+
+        // Check if the credentials match a regular user
+        $token = Auth::attempt($credentials);
+        if (!$token) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Invalid credentials'
+            ], 401);
+        }
+
         $user = Auth::user();
         return response()->json([
-            'status'=>'success',
+            'status' => 'success',
             'user' => $user,
-            'Authorization'=> [
-                'token'=> $token,
-                'type'=> 'Bearer',
+            'Authorization' => [
+                'token' => $token,
+                'type' => 'Bearer',
             ]
-            ], 200);
+        ], 200);
     }
 
     public function logout(Request $request)
-{
-    $user = $request->user();
+    {
+        $user = $request->user();
 
-    if ($user) {
-        $user->currentAccessToken()->delete();
+        if ($user && method_exists($user, 'currentAccessToken') && $user->currentAccessToken()) {
+            $user->currentAccessToken()->delete();
+        }
+
+        Auth::logout();
 
         return response()->json([
             'status' => 'success',
@@ -80,20 +97,14 @@ class AuthController extends Controller
         ]);
     }
 
-    return response()->json([
-        'status' => 'error',
-        'message' => 'User not authenticated',
-    ], 401);
-}
-
     public function refresh(){
         return response()->json([
-            'message' => 'refreshed Succesfully',
+            'message' => 'refreshed Successfully',
             'user' => Auth::user(),
             'Authorization'=> [
                 'token'=> Auth::refresh(),
                 'type'=> 'Bearer',
             ]
-            ], 200);
+        ], 200);
     }
 }
