@@ -65,29 +65,38 @@ class UtilisateurController extends Controller
     /**
      * Met à jour un utilisateur.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, $id)
     {
-        $utilisateur = Utilisateur::findOrFail($id);
-
-        $request->validate([
-            'nationality' => 'required|string|max:255',
-            'registration_date' => 'required|date',
+        // Validation des données entrantes
+        $validatedData = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:utilisateurs,email,' . $id,
-            'password' => 'nullable|string|min:6',
-            'birth_date' => 'nullable|date',
+            'username' => 'required|string|max:255|unique:users,username,' . $id,
+            'email' => 'required|email|unique:users,email,' . $id,
+            'role' => 'required|string|max:255',
+            'nationality' => 'required|string|max:255',
+            'birthDate' => 'required|date',
         ]);
 
-        $utilisateur->update([
-            'nationality' => $request->nationality,
-            'registration_date' => $request->registration_date,
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => $request->password ? Hash::make($request->password) : $utilisateur->password,
-            'birth_date' => $request->birth_date,
+        // Trouver l'utilisateur par son ID
+        $user = User::find($id);
+
+        // Vérifier si l'utilisateur existe
+        if (!$user) {
+            return response()->json(['message' => 'Utilisateur non trouvé'], 404);
+        }
+
+        // Mettre à jour l'utilisateur
+        $user->update([
+            'name' => $validatedData['name'],
+            'username' => $validatedData['username'],
+            'email' => $validatedData['email'],
+            'role' => $validatedData['role'],
+            'nationality' => $validatedData['nationality'],
+            'birth_date' => $validatedData['birthDate'],
         ]);
 
-        return redirect()->route('utilisateurs.index')->with('success', 'Utilisateur mis à jour avec succès.');
+        // Retourner la réponse avec les données mises à jour
+        return response()->json($user, 200);
     }
 
     /**

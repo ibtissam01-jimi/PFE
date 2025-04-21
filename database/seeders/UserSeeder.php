@@ -24,6 +24,7 @@ class UserSeeder extends Seeder
             'nationality'=>'moroccan',
             'birth_date'=>'2025-04-05'
         ]);
+
         
         DB::table('users')->insert([
             'name'=>'ameur',

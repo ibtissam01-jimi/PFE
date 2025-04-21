@@ -76,11 +76,14 @@ class CityController extends Controller
     /**
      * Affiche une ville spécifique avec ses services et guides touristiques.
      */
-    public function show(string $id)
-    {
-        $city = City::with(['services', 'touristGuides'])->findOrFail($id);
-        return view('cities.show', ['city' => $city]);
-    }
+    public function show($id)
+{
+    // Recherche la ville par son ID
+    $city = City::findOrFail($id);
+
+    return response()->json($city);
+}
+
 
     /**
      * Affiche le formulaire d'édition d'une ville.
@@ -94,30 +97,35 @@ class CityController extends Controller
     /**
      * Met à jour une ville existante dans la base de données.
      */
-    public function update(Request $request, string $id)
-    {
-        $city = City::findOrFail($id);
+    public function update(Request $request, $id)
+{
+    // Trouver la ville par ID
+    $city = City::findOrFail($id);
 
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'location' => 'nullable|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
+    // Validation des données
+    $request->validate([
+        'name' => 'required|string|max:255',
+        'description' => 'required|string',
+        'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+    ]);
 
-        $city->name = $request->name;
-        $city->description = $request->description;
-        $city->location = $request->location;
+    // Mise à jour des champs
+    $city->name = $request->name;
+    $city->description = $request->description;
 
-        // Gérer la mise à jour de l'image
-        if ($request->hasFile('image')) {
-            $imagePath = $request->file('image')->store('cities', 'public');
-            $city->image = $imagePath;
-        }
-
-        $city->save();
-        return redirect()->route('cities.index')->with('success', 'Ville mise à jour avec succès.');
+    // Si une nouvelle image est envoyée
+    if ($request->hasFile('image')) {
+        $imagePath = $request->file('image')->store('images', 'public');
+        $city->image = $imagePath;
     }
+
+    // Sauvegarder la ville mise à jour
+    $city->save();
+
+    // Retourner la ville mise à jour
+    return response()->json($city);
+}
+
 
     /**
      * Supprime une ville et ses relations associées.

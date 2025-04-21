@@ -15,24 +15,46 @@ class SubmissionController extends Controller
     }
 
     
-    public function store(Request $request){
-        $user_id=Auth::id();
+    public function store(Request $request)
+{
+    // Validation des données avec la validation de l'image spécifiée
 
-        $submission = new Service_Submission();
-        $submission->name = $request->name;
-        $submission->description = $request->description;
-        //$submission->slug = $request->slug;
-        $submission->status = 'pending';
-        $submission->website = $request->website;
-        $submission->address = $request->address;
-        $submission->phone_number = $request->phone_number;
-        $submission->email = $request->email;
-        $submission->user_id = $user_id;
-        $submission->city_id = $request->city_id;
-        $submission->category_id = $request->category_id;
-        $submission->save();
 
+    // Création de la soumission
+    $submission = new Service_Submission();
+
+    // Assigner les valeurs aux propriétés du modèle
+    $submission->name = $request->name;
+    $submission->description = $request->description;
+    $submission->address = $request->address;
+    $submission->website = $request->website;
+    $submission->email = $request->email;
+    $submission->phone_number = $request->phone_number;
+    $submission->category_id = $request->category_id;
+    $submission->city_id = $request->city_id;
+
+    // Gestion de l'image
+    if ($request->hasFile('image')) {
+        // Récupérer le nom original de l'image
+        $imageName = $request->file('image')->getClientOriginalName();
+
+        // Déplacer l'image vers le dossier public/images/services
+        $imagePath = public_path('/images/services');
+        $request->file('image')->move($imagePath, $imageName);
+
+        // Enregistrer le chemin relatif de l'image dans la base de données
+        $submission->image = '/images/services/' . $imageName;
     }
+
+    // Enregistrer la soumission dans la base de données
+    $submission->status = 'pending';  // Vous pouvez définir un statut par défaut
+    $submission->save();
+
+    // Retourner une réponse JSON avec un message de succès
+    return response()->json(['message' => 'Soumission reçue avec succès'], 201);
+}
+
+
 
 
 

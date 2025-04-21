@@ -8,6 +8,9 @@ use App\Models\City;
 use App\Models\Categorie;
 use App\Models\Admin;
 
+use Illuminate\Support\Facades\Log;
+
+
 class ServiceController extends Controller
 {
     /**
@@ -156,25 +159,47 @@ public function store(Request $request)
     /**
      * Met à jour un service.
      */
-    public function update(Request $request, string $id)
-    {
-        $service = Service::findOrFail($id);
+    public function update(Request $request, $id)
+{
+    $service = Service::findOrFail($id);
 
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'location' => 'nullable|string',
-            'added_date' => 'required|date',
-            'website_link' => 'nullable|url',
-            'city_id' => 'required|exists:cities,id',
-            'category_id' => 'required|exists:categories,id',
-            'admin_id' => 'required|exists:admins,id',
-        ]);
+    // Préparez les données de mise à jour
+    $updatedData = $request->only([
+        'name',
+        'description',
+        'address',
+        'email',
+        'phone_number',
+        'website',
+        'city_id',
+        'category_id'
+    ]);
 
-        $service->update($request->all());
+    // Image upload (si une nouvelle image est envoyée)
+    if ($request->hasFile('image')) {
+        // Supprimer l'ancienne image si elle existe
+        if ($service->image && file_exists(public_path('images/services/' . $service->image))) {
+            unlink(public_path('images/services/' . $service->image));
+        }
 
-        return redirect()->route('services.index')->with('success', 'Service mis à jour avec succès.');
+        // Télécharger la nouvelle image
+        $file = $request->file('image');
+        $filename = time() . '_' . $file->getClientOriginalName();
+        $file->move(public_path('images/services'), $filename);
+
+        // Ajouter le chemin de la nouvelle image aux données mises à jour
+        $updatedData['image'] = 'services/' . $filename;
     }
+
+    // Log pour débogage
+    Log::debug('Service updated data:', $updatedData);
+
+    // Mettre à jour les données du service
+    $service->update($updatedData);
+
+    // Retourner une réponse avec le message de succès et les données du service
+    return response()->json(['message' => 'Service mis à jour avec succès', 'service' => $service]);
+}
 
     /**
      * Supprime un service.

@@ -48,9 +48,12 @@ Route::post('refresh', [AuthController::class, 'refresh']);
 
 Route::get('/registertest',[AuthController::class,'test']);
 
+
+
 Route::post('/new_submission',[SubmissionController::class, 'store']);
 
 Route::get('/dashboard', [DashboardController::class, 'index']);
+
 
 
 Route::get('/categories', [CategorieController::class, 'index']);
